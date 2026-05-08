@@ -143,11 +143,22 @@ install_ubuntu() {
         log_info "检测到 AMD GPU，安装驱动..."
         
         # 安装 AMD Vulkan 驱动
+        # 注意：vulkan-radeon 和 libvulkan-radeon 需要 AMD 官方仓库
+        # 如果不可用，使用 mesa-vulkan-drivers 作为回退
         log_info "安装 AMD Vulkan 驱动..."
-        sudo apt install -y \
-            mesa-vulkan-drivers \
-            vulkan-radeon \
-            libvulkan-radeon
+        
+        # 先尝试安装基础驱动（总是可用）
+        sudo apt install -y mesa-vulkan-drivers \
+            libvulkan1
+        
+        # 尝试安装 AMD 专有驱动（如果仓库可用）
+        if apt-cache search vulkan-radeon | grep -q "^vulkan-radeon"; then
+            log_info "检测到 AMD 仓库，安装专有驱动..."
+            sudo apt install -y vulkan-radeon libvulkan-radeon
+        else
+            log_warning "vulkan-radeon 包不可用，使用 mesa-vulkan-drivers（开源驱动已包含 Vulkan 支持）"
+            log_info "如需 AMD 专有驱动，请先添加 AMD 软件源：https://www.amd.com/en/support/linux-drivers"
+        fi
         
         # MI50 (gfx906) 特殊配置
         if lspci | grep -i "MI50" > /dev/null 2>&1; then
