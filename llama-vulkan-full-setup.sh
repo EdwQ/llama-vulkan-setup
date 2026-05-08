@@ -162,13 +162,26 @@ install_ubuntu() {
         
         # MI50 (gfx906) 特殊配置
         if lspci | grep -i "MI50" > /dev/null 2>&1; then
-            log_info "检测到 AMD MI50，配置 gfx906 支持..."
+            log_warning "⚠️  检测到 AMD MI50（计算卡）"
+            log_info "重要说明：MI50 没有视频输出接口！"
+            log_info ""
+            log_info "配置说明:"
+            log_info "  ✅ 显示设备：使用集成显卡或独立显示卡（如 RTX 3060）"
+            log_info "  ✅ MI50: 仅用于计算任务（llama.cpp、ROCm）"
+            log_info ""
+            log_info "使用 MI50 进行计算时，运行 llama.cpp 命令指定:"
+            log_info "  llama-cli -m model.gguf -ngl 99 --device vulkan --gpu 1"
+            log_info ""
+            log_info "注意: 不要将 MI50 设置为系统显示设备！"
+            log_info "HSA_OVERRIDE_GFX_VERSION 环境变量仅在运行计算程序时设置"
             
-            # 创建 ROCm 配置文件
-            echo "export HSA_OVERRIDE_GFX_VERSION=9.0.6" | sudo tee -a /etc/profile.d/rocm.sh
+            # 创建 ROCm 配置文件（仅用于计算，不影响显示）
+            echo "# ROCm 配置 - MI50 计算卡支持" | sudo tee /etc/profile.d/rocm.sh > /dev/null
+            echo "# 注意：此配置仅用于计算任务，不影响显示设备" | sudo tee -a /etc/profile.d/rocm.sh > /dev/null
+            echo "export HSA_OVERRIDE_GFX_VERSION=9.0.6" | sudo tee -a /etc/profile.d/rocm.sh > /dev/null
             sudo chmod +x /etc/profile.d/rocm.sh
             
-            log_success "MI50 gfx906 配置完成"
+            log_success "✅ MI50 gfx906 计算配置完成"
         fi
     fi
     
