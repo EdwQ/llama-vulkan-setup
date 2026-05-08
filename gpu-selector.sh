@@ -21,19 +21,23 @@ detect_vulkan_gpu() {
     # 尝试使用 vulkaninfo 获取 GPU 信息
     if command -v vulkaninfo &> /dev/null; then
         gpu_index=0
+        # 改进解析：使用更稳定的 grep 和 sed 模式
         while IFS= read -r line; do
-            if [[ "$line" =~ "deviceName" ]]; then
-                gpu_name=$(echo "$line" | sed 's/.*= //')
-                vulkan_gpu_list[$gpu_index]="$gpu_name"
-                ((gpu_index++))
-                ((vulkan_gpu_count++))
+            if [[ "$line" == *"deviceName"* ]]; then
+                # 提取 GPU 名称（去除前导空格和=符号）
+                gpu_name=$(echo "$line" | sed 's/^[[:space:]]*//' | sed 's/.*=[[:space:]]*//')
+                if [ -n "$gpu_name" ]; then
+                    vulkan_gpu_list[$gpu_index]="$gpu_name"
+                    ((gpu_index++))
+                    ((vulkan_gpu_count++))
+                fi
             fi
-        done < <(vulkaninfo --summary 2>/dev/null | grep "deviceName")
+        done < <(vulkaninfo --summary 2>/dev/null | grep -i "deviceName")
     fi
     
-    # 如果 vulkaninfo 不可用，尝试其他方法
+    # 如果 vulkaninfo 解析失败，尝试其他方法
     if [ $vulkan_gpu_count -eq 0 ]; then
-        echo -e "${YELLOW}⚠️  vulkaninfo 未找到，尝试其他方式检测...${NC}"
+        echo -e "${YELLOW}⚠️  vulkaninfo 未返回 GPU 信息，尝试其他方式检测...${NC}"
         
         # 检测 NVIDIA GPU
         if command -v nvidia-smi &> /dev/null; then
@@ -48,10 +52,9 @@ detect_vulkan_gpu() {
         
         # 检测 AMD GPU
         if [ -d "/dev/dri" ]; then
-            amd_count=0
             for card in /dev/dri/card*; do
                 if [ -e "$card" ]; then
-                    gpu_name=$(cat /sys/class/dri/card*/device/name 2>/dev/null | head -1)
+                    gpu_name=$(cat "$card"/../device/name 2>/dev/null | head -1)
                     if [ -n "$gpu_name" ]; then
                         vulkan_gpu_list[$vulkan_gpu_count]="$gpu_name (AMD)"
                         ((vulkan_gpu_count++))
@@ -59,6 +62,18 @@ detect_vulkan_gpu() {
                 fi
             done
         fi
+        
+        # 最后尝试：检查是否有 llvmpipe（软件渲染）
+        if [ $vulkan_gpu_count -eq 0 ]; then
+            echo -e "${YELLOW}⚠️  未检测到独立 GPU，使用软件渲染（llvmpipe）${NC}"
+            vulkan_gpu_list[$vulkan_gpu_count]="llvmpipe (Software Rendering)"
+            ((vulkan_gpu_count++))
+        fi
+    fi
+    
+    if [ $vulkan_gpu_count -eq 0 ]; then
+        echo -e "${RED}❌ 未检测到 Vulkan 设备${NC}"
+        exit 1
     fi
     
     echo -e "${GREEN}✅ 检测到 $vulkan_gpu_count 个 Vulkan 设备${NC}"
