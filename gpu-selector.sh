@@ -2,7 +2,7 @@
 # llama-vulkan-setup - GPU 检测和交互式选择脚本
 # 支持 AMD MI50 和 NVIDIA RTX 3060 双 GPU 配置
 
-set -e
+# 注意：不使用 set -e，因为 ((var++)) 在 var=0 时会返回 1 导致退出
 
 # 颜色定义
 RED='\033[0;31m'
