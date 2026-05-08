@@ -87,37 +87,25 @@ case $choice in
         ;;
     
     2)
-        if [ "$DISPLAY_GPU" = "NVIDIA" ]; then
-            echo ""
-            echo "🔧 设置 NVIDIA 显卡为显示设备..."
-            
-            # 移除 MI50 配置
-            sudo sed -i '/HSA_OVERRIDE_GFX_VERSION/d' /etc/profile.d/rocm.sh 2>/dev/null || true
-            sudo sed -i '/VULKAN_DEVICE_INDEX/d' ~/.zshcr 2>/dev/null || true
-            
-            echo "  ✅ 已设置 NVIDIA 为显示设备"
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "✅ 修复完成！"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            echo "请重启系统："
-            echo "  sudo reboot"
-        else
-            echo ""
-            echo "❌ 未检测到 NVIDIA 显卡，无法使用此选项"
-        fi
-        ;;
-    
-    3)
         echo ""
-        echo "🔧 禁用 MI50 显示输出..."
+        echo "🔧 设置 NVIDIA 显卡为显示设备..."
         
-        # 创建模块配置，禁用 MI50 作为显示设备
-        echo "  创建 amdgpu 模块配置..."
-        echo "options amdgpu mgag200=1" | sudo tee /etc/modprobe.d/amdgpu.conf > /dev/null
+        # 首先移除 MI50 配置
+        sudo sed -i '/HSA_OVERRIDE_GFX_VERSION/d' /etc/profile.d/rocm.sh 2>/dev/null || true
+        sudo sed -i '/VULKAN_DEVICE_INDEX/d' ~/.zshrc 2>/dev/null || true
+        sudo sed -i '/VULKAN_DEVICE_INDEX/d' ~/.bashrc 2>/dev/null || true
+        sudo sed -i '/ROCM_VISIBLE_DEVICES/d' ~/.zshrc 2>/dev/null || true
         
-        echo "  ✅ 已禁用 MI50 显示输出"
+        # 检查是否有 NVIDIA 显卡
+        if lspci | grep -i "NVIDIA" > /dev/null 2>&1; then
+            echo "  ✅ 已确认 NVIDIA 显卡存在"
+            echo "  ✅ 已移除 MI50 显示配置"
+            echo "  ✅ 系统将使用 NVIDIA 显卡作为显示设备"
+        else
+            echo "  ⚠️  未检测到 NVIDIA 显卡"
+            echo "  系统将使用默认 GPU（通常是集成显卡）"
+        fi
+        
         echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "✅ 修复完成！"
@@ -125,6 +113,28 @@ case $choice in
         echo ""
         echo "请重启系统："
         echo "  sudo reboot"
+        ;;
+    
+    3)
+        echo ""
+        echo "🔧 禁用 MI50 显示输出..."
+        
+        # 移除 MI50 相关配置
+        sudo sed -i '/HSA_OVERRIDE_GFX_VERSION/d' /etc/profile.d/rocm.sh 2>/dev/null || true
+        sudo sed -i '/VULKAN_DEVICE_INDEX/d' ~/.zshrc 2>/dev/null || true
+        sudo sed -i '/VULKAN_DEVICE_INDEX/d' ~/.bashrc 2>/dev/null || true
+        sudo sed -i '/ROCM_VISIBLE_DEVICES/d' ~/.zshrc 2>/dev/null || true
+        
+        echo "  ✅ 已禁用 MI50 显示相关配置"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "✅ 修复完成！"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "请重启系统："
+        echo "  sudo reboot"
+        echo ""
+        echo "系统会自动使用默认 GPU（集成显卡或 NVIDIA）作为显示设备"
         ;;
     
     4)
