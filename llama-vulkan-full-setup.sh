@@ -175,52 +175,46 @@ install_ubuntu() {
     # 安装 llama.cpp
     log_info "安装 llama.cpp..."
     
-    # 方法 1: 使用 apt 安装（如果可用）
-    if apt-cache search llama-cpp > /dev/null; then
-        sudo apt install -y llama-cpp
-        log_success "通过 apt 安装 llama-cpp"
+    # llama-cpp 包在大多数 Ubuntu 源中不可用，直接从源码编译
+    log_info "从源码编译 llama.cpp..."
+    
+    # 安装编译依赖
+    sudo apt install -y \
+        build-essential \
+        cmake \
+        git \
+        clang
+    
+    # 克隆并编译
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+    
+    git clone https://github.com/ggml-org/llama.cpp.git
+    cd llama.cpp
+    
+    # 创建构建目录
+    mkdir -p build && cd build
+    
+    # 配置编译选项
+    if [[ "$GPU_DETECTED" == "nvidia" ]]; then
+        log_info "启用 CUDA 后端..."
+        cmake -DLLAMA_CUDA=ON ..
+    elif [[ "$GPU_DETECTED" == "amd" ]]; then
+        log_info "启用 Vulkan 后端..."
+        cmake -DLLAMA_VULKAN=ON ..
     else
-        # 方法 2: 从源码编译
-        log_info "从源码编译 llama.cpp..."
-        
-        # 安装编译依赖
-        sudo apt install -y \
-            build-essential \
-            cmake \
-            git \
-            clang
-        
-        # 克隆并编译
-        TEMP_DIR=$(mktemp -d)
-        cd "$TEMP_DIR"
-        
-        git clone https://github.com/ggml-org/llama.cpp.git
-        cd llama.cpp
-        
-        # 创建构建目录
-        mkdir -p build && cd build
-        
-        # 配置编译选项
-        if [[ "$GPU_DETECTED" == "nvidia" ]]; then
-            log_info "启用 CUDA 后端..."
-            cmake -DLLAMA_CUDA=ON ..
-        elif [[ "$GPU_DETECTED" == "amd" ]]; then
-            log_info "启用 Vulkan 后端..."
-            cmake -DLLAMA_VULKAN=ON ..
-        else
-            cmake ..
-        fi
-        
-        # 编译
-        make -j$(nproc)
-        
-        # 安装
-        sudo make install
-        
-        # 清理临时目录
-        cd /
-        rm -rf "$TEMP_DIR"
+        cmake ..
     fi
+    
+    # 编译
+    make -j$(nproc)
+    
+    # 安装
+    sudo make install
+    
+    # 清理临时目录
+    cd /
+    rm -rf "$TEMP_DIR"
     
     log_success "Ubuntu/Debian Vulkan 配置完成!"
 }
