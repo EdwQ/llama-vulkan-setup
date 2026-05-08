@@ -175,49 +175,62 @@ install_ubuntu() {
     # 安装 llama.cpp
     log_info "安装 llama.cpp..."
     
-    # llama-cpp 包在大多数 Ubuntu 源中不可用，直接从源码编译
-    log_info "从源码编译 llama.cpp..."
-    
-    # 安装编译依赖
-    sudo apt install -y \
-        build-essential \
-        cmake \
-        git \
-        clang
-    
-    # 克隆并编译
-    TEMP_DIR=$(mktemp -d)
-    cd "$TEMP_DIR"
-    
-    git clone https://github.com/ggml-org/llama.cpp.git
-    cd llama.cpp
-    
-    # 创建构建目录
-    mkdir -p build && cd build
-    
-    # 配置编译选项
-    if [[ "$GPU_DETECTED" == "nvidia" ]]; then
-        log_info "启用 CUDA 后端..."
-        cmake -DLLAMA_CUDA=ON -DCMAKE_BUILD_TYPE=Release ..
-    elif [[ "$GPU_DETECTED" == "amd" ]]; then
-        log_info "启用 Vulkan 后端..."
-        cmake -DLLAMA_VULKAN=ON -DCMAKE_BUILD_TYPE=Release ..
+    # 检查是否已安装 llama.cpp
+    if command -v llama-cli &> /dev/null; then
+        log_success "✅ llama.cpp 已安装，跳过编译"
+        llama_version=$(llama-cli --version 2>&1 | head -1 || echo "未知版本")
+        log_info "当前版本：$llama_version"
     else
-        cmake -DCMAKE_BUILD_TYPE=Release ..
+        log_info "从源码编译 llama.cpp..."
+        
+        # 安装编译依赖
+        sudo apt install -y \
+            build-essential \
+            cmake \
+            git \
+            clang
+        
+        # 克隆并编译
+        TEMP_DIR=$(mktemp -d)
+        cd "$TEMP_DIR"
+        
+        # 检查是否已克隆过
+        if [ -d "llama.cpp" ]; then
+            log_info "使用已克隆的 llama.cpp 仓库"
+        else
+            git clone https://github.com/ggml-org/llama.cpp.git
+            cd llama.cpp
+        fi
+        
+        # 创建构建目录
+        mkdir -p build && cd build
+        
+        # 配置编译选项
+        if [[ "$GPU_DETECTED" == "nvidia" ]]; then
+            log_info "启用 CUDA 后端..."
+            cmake -DLLAMA_CUDA=ON -DCMAKE_BUILD_TYPE=Release ..
+        elif [[ "$GPU_DETECTED" == "amd" ]]; then
+            log_info "启用 Vulkan 后端..."
+            cmake -DLLAMA_VULKAN=ON -DCMAKE_BUILD_TYPE=Release ..
+        else
+            cmake -DCMAKE_BUILD_TYPE=Release ..
+        fi
+        
+        # 编译
+        make -j$(nproc)
+        
+        # 安装
+        sudo make install
+        
+        # 更新动态链接库缓存
+        sudo ldconfig
+        
+        # 清理临时目录
+        cd /
+        rm -rf "$TEMP_DIR"
+        
+        log_success "✅ llama.cpp 安装完成"
     fi
-    
-    # 编译
-    make -j$(nproc)
-    
-    # 安装
-    sudo make install
-    
-    # 更新动态链接库缓存
-    sudo ldconfig
-    
-    # 清理临时目录
-    cd /
-    rm -rf "$TEMP_DIR"
     
     # 添加模型下载指导
     log_info "下载模型指导:"
