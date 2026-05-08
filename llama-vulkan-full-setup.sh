@@ -198,12 +198,12 @@ install_ubuntu() {
     # 配置编译选项
     if [[ "$GPU_DETECTED" == "nvidia" ]]; then
         log_info "启用 CUDA 后端..."
-        cmake -DLLAMA_CUDA=ON ..
+        cmake -DLLAMA_CUDA=ON -DCMAKE_BUILD_TYPE=Release ..
     elif [[ "$GPU_DETECTED" == "amd" ]]; then
         log_info "启用 Vulkan 后端..."
-        cmake -DLLAMA_VULKAN=ON ..
+        cmake -DLLAMA_VULKAN=ON -DCMAKE_BUILD_TYPE=Release ..
     else
-        cmake ..
+        cmake -DCMAKE_BUILD_TYPE=Release ..
     fi
     
     # 编译
@@ -212,9 +212,43 @@ install_ubuntu() {
     # 安装
     sudo make install
     
+    # 更新动态链接库缓存
+    sudo ldconfig
+    
     # 清理临时目录
     cd /
     rm -rf "$TEMP_DIR"
+    
+    # 添加模型下载指导
+    log_info "下载模型指导:"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📥 模型下载位置:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "推荐从以下来源下载 GGUF 格式模型:"
+    echo ""
+    echo "1. Hugging Face (推荐):"
+    echo "   https://huggingface.co/models?search=gguf"
+    echo ""
+    echo "2. 热门模型示例:"
+    echo "   - Llama 3: https://huggingface.co/meta-llama"
+    echo "   - Qwen:    https://huggingface.co/Qwen"
+    echo "   - Gemma:   https://huggingface.co/google-gemma"
+    echo ""
+    echo "3. 下载命令示例:"
+    echo "   # 使用 huggingface-cli (需要先安装):"
+    echo "   pip install huggingface-hub"
+    echo "   huggingface-cli download Qwen/Qwen2.5-7B-Instruct-GGUF qwen2.5-7b-instruct-q4_k_m.gguf"
+    echo ""
+    echo "   # 或使用 wget:"
+    echo "   wget https://huggingface.co/Qwen/Qwen2.5-7B-Instruct-GGUF/resolve/main/qwen2.5-7b-instruct-q4_k_m.gguf"
+    echo ""
+    echo "下载后，将模型文件移动到 ~/models/ 目录:"
+    echo "  mkdir -p ~/models"
+    echo "  mv <下载的文件> ~/models/"
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
     log_success "Ubuntu/Debian Vulkan 配置完成!"
 }

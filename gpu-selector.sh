@@ -67,12 +67,13 @@ detect_vulkan_gpu() {
 # 显示 GPU 信息
 show_gpu_info() {
     echo ""
-    echo -e "${BLUE}📊 GPU 信息:${${NC}"
+    echo -e "${BLUE}📊 GPU 信息:${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
     for i in "${!vulkan_gpu_list[@]}"; do
         if [[ "${vulkan_gpu_list[$i]}" =~ "MI50" ]] || [[ "${vulkan_gpu_list[$i]}" =~ "gfx906" ]]; then
             echo -e "  [${GREEN}$i${NC}] ${vulkan_gpu_list[$i]} ${GREEN}(AMD MI50 - 推荐大模型加载)${NC}"
+        echo "    注意：AMD MI50 使用 Vulkan 后端，确保驱动已正确安装"
         elif [[ "${vulkan_gpu_list[$i]}" =~ "RTX 3060" ]] || [[ "${vulkan_gpu_list[$i]}" =~ "NVIDIA" ]]; then
             echo -e "  [${YELLOW}$i${NC}] ${vulkan_gpu_list[$i]} ${YELLOW}(RTX 3060 - 推荐快速推理)${NC}"
         else
