@@ -84,15 +84,34 @@ install_ubuntu() {
     log_info "更新包列表..."
     sudo apt update
     
-    # 安装基础 Vulkan 工具
+    # 安装基础 Vulkan 工具（兼容不同 Ubuntu 版本）
     log_info "安装 Vulkan 基础工具..."
-    sudo apt install -y \
-        vulkan-tools \
-        vulkan-icd-loader \
-        libvulkan1 \
-        mesa-vulkan-drivers \
-        libgl1-mesa-glx \
-        libegl1-mesa
+    
+    # Ubuntu 24.04 (noble) 及更新版本包名变更
+    # vulkan-icd-loader 已被废弃，vulkan-tools 包含所需功能
+    # libgl1-mesa-glx 和 libegl1-mesa 被 libgl1 和 libegl1 替代
+    
+    # 尝试安装新包名（Ubuntu 24.04+）
+    if apt-cache search libgl1 | grep -q "^libgl1 "; then
+        log_info "检测到 Ubuntu 24.04+，使用新包名..."
+        sudo apt install -y \
+            vulkan-tools \
+            libvulkan1 \
+            mesa-vulkan-drivers \
+            libgl1 \
+            libegl1 \
+            libgl1-mesa-dri \
+            libegl-mesa0 || true
+    else
+        # 旧版本 Ubuntu/Debian
+        sudo apt install -y \
+            vulkan-tools \
+            vulkan-icd-loader \
+            libvulkan1 \
+            mesa-vulkan-drivers \
+            libgl1-mesa-glx \
+            libegl1-mesa || true
+    fi
     
     # 检测 GPU 类型
     GPU_DETECTED=""
